@@ -123,9 +123,35 @@ const actualizarCliente = async (req, res) => {
     }
 };
 
+// ELIMINAR
+const eliminarCliente = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "ID no válido"
+            });
+        }
+        const cliente = await Cliente.findByIdAndDelete(id);
+        if (!cliente) {
+            return res.status(404).json({
+                error: "Cliente no encontrado"
+            });
+        }
+        res.json({
+            message: "Cliente eliminado correctamente"
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Error del servidor"
+        });
+    }
+};
+
 export { 
     crearCliente,
     obtenerClientes,
     buscarCliente,
-    actualizarCliente
+    actualizarCliente,
+    eliminarCliente
 };
