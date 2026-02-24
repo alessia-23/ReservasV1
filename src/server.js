@@ -8,7 +8,8 @@ import mongoose from 'mongoose';
 // Importación de rutas
 import authRoutes from './routes/authRoutes.js';
 import vehiculoRoutes from './routes/vehiculoRoutes.js';
-import clienteRoutes from './routes/clienteRoutes.js';    
+import clienteRoutes from './routes/clienteRoutes.js';   
+import reservaRoutes from './routes/reservaRoutes.js'; 
 
 // Inicialización
 dotenv.config();
@@ -27,6 +28,7 @@ res.send('Server on');
 app.use('/api/auth', authRoutes); //Para login y registro
 app.use('/api/vehiculos',vehiculoRoutes) // Para las operaciones CRUD de vehículos
 app.use('/api/clientes',clienteRoutes) // Para las operaciones CRUD de clientes
+app.use('/api/reservas',reservaRoutes) // Para las operaciones CRUD de reservas
 
 
 const PORT = process.env.PORT || 3000;
