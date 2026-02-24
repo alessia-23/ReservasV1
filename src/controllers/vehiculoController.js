@@ -85,8 +85,56 @@ const buscarVehiculo = async (req, res) => {
     }
 };
 
+// ACTUALIZAR VEHÍCULO
+const actualizarVehiculo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "ID no válido"
+            });
+        }
+        const datosActualizados = { ...req.body };
+        // Eliminar campos vacíos
+        Object.keys(datosActualizados).forEach(key => {
+            if (datosActualizados[key] === "") {
+                delete datosActualizados[key];
+            }
+        });
+        const vehiculo = await Vehiculo.findByIdAndUpdate(
+            id,
+            datosActualizados,
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+        if (!vehiculo) {
+            return res.status(404).json({
+                error: "Vehículo no encontrado"
+            });
+        }
+        res.json({
+            message: "Vehículo actualizado correctamente",
+            vehiculo
+        });
+    } catch (error) {
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                error: error.message
+            });
+        }
+        res.status(500).json({
+            error: "Error del servidor"
+        });
+    }
+};
+
+
+
 export {
     crearVehiculo,
     obtenerVehiculos,
-    buscarVehiculo
+    buscarVehiculo,
+    actualizarVehiculo
 };
