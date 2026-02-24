@@ -34,4 +34,53 @@ const crearCliente = async (req, res) => {
     }
 };
 
-export { crearCliente };
+// OBTENER TODOS LOS CLIENTES
+const obtenerClientes = async (req, res) => {
+    try {
+        const clientes = await Cliente.find();
+        res.json({ clientes });
+    } catch (error) {
+        res.status(500).json({
+            error: "Error del servidor"
+        });
+    }
+};
+
+// BUSCAR POR CÉDULA O APELLIDO
+const buscarCliente = async (req, res) => {
+    try {
+        let { cedula, apellido } = req.query;
+        if (cedula) cedula = cedula.trim();
+        if (apellido) apellido = apellido.trim();
+        if (!cedula && !apellido) {
+            return res.status(400).json({
+                error: "Debe enviar cédula o apellido"
+            });
+        }
+        if (cedula && apellido) {
+            return res.status(400).json({
+                error: "Debe buscar por cédula o por apellido, no por ambos"
+            });
+        }
+        let filtro = {};
+        if (cedula) filtro.cedula = cedula;
+        if (apellido) filtro.apellido = { $regex: apellido, $options: "i" };
+        const clientes = await Cliente.find(filtro);
+        if (clientes.length === 0) {
+            return res.status(404).json({
+                error: "No se encontraron clientes"
+            });
+        }
+        res.json({ clientes });
+    } catch (error) {
+        res.status(500).json({
+            error: "Error del servidor"
+        });
+    }
+};
+
+export { 
+    crearCliente,
+    obtenerClientes,
+    buscarCliente
+};
