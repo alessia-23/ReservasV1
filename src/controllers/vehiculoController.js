@@ -130,11 +130,35 @@ const actualizarVehiculo = async (req, res) => {
     }
 };
 
-
+// ELIMINAR VEHÍCULO
+const eliminarVehiculo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "ID no válido"
+            });
+        }
+        const vehiculo = await Vehiculo.findByIdAndDelete(id);
+        if (!vehiculo) {
+            return res.status(404).json({
+                error: "Vehículo no encontrado"
+            });
+        }
+        res.json({
+            message: "Vehículo eliminado correctamente"
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Error del servidor"
+        });
+    }
+};
 
 export {
     crearVehiculo,
     obtenerVehiculos,
     buscarVehiculo,
-    actualizarVehiculo
+    actualizarVehiculo,
+    eliminarVehiculo
 };
