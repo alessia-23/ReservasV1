@@ -37,6 +37,56 @@ const crearVehiculo = async (req, res) => {
     }
 };
 
+// OBTENER TODOS
+const obtenerVehiculos = async (req, res) => {
+    try {
+        const vehiculos = await Vehiculo.find();
+        res.json({
+            vehiculos
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Error del servidor"
+        });
+    }
+};
+
+// BUSCAR POR PLACA O MARCA
+const buscarVehiculo = async (req, res) => {
+    try {
+        let { placa, marca } = req.query;
+        if (placa) placa = placa.trim().toUpperCase();
+        if (marca) marca = marca.trim();
+        if (!placa && !marca) {
+            return res.status(400).json({
+                error: "Debe enviar placa o marca"
+            });
+        }
+        let filtro = {};
+        if (placa) {
+            filtro.placa = placa;
+        }
+        if (marca) {
+            filtro.marca = marca;
+        }
+        const vehiculos = await Vehiculo
+            .find(filtro)
+            .collation({ locale: "es", strength: 1 });
+        if (vehiculos.length === 0) {
+            return res.status(404).json({
+                error: "No se encontraron vehículos"
+            });
+        }
+        res.json({ vehiculos });
+    } catch (error) {
+        res.status(500).json({
+            error: "Error del servidor"
+        });
+    }
+};
+
 export {
-    crearVehiculo
+    crearVehiculo,
+    obtenerVehiculos,
+    buscarVehiculo
 };
