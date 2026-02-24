@@ -79,8 +79,53 @@ const buscarCliente = async (req, res) => {
     }
 };
 
+// ACTUALIZAR CLIENTE
+const actualizarCliente = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "ID no válido"
+            });
+        }
+        const datosActualizados = { ...req.body };
+        Object.keys(datosActualizados).forEach(key => {
+            if (datosActualizados[key] === "") {
+                delete datosActualizados[key];
+            }
+        });
+        const cliente = await Cliente.findByIdAndUpdate(
+            id,
+            datosActualizados,
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+        if (!cliente) {
+            return res.status(404).json({
+                error: "Cliente no encontrado"
+            });
+        }
+        res.json({
+            message: "Cliente actualizado correctamente",
+            cliente
+        });
+    } catch (error) {
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                error: error.message
+            });
+        }
+        res.status(500).json({
+            error: "Error del servidor"
+        });
+    }
+};
+
 export { 
     crearCliente,
     obtenerClientes,
-    buscarCliente
+    buscarCliente,
+    actualizarCliente
 };
