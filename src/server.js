@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import vehiculoRoutes from './routes/vehiculoRoutes.js';
 
 // Importación de rutas
 import authRoutes from './routes/authRoutes.js';
@@ -21,7 +22,8 @@ app.get('/', (req, res) => {
 res.send('Server on');
 });
 // Rutas 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes); //Para login y registro
+app.use('/api/vehiculos',vehiculoRoutes) // Para las operaciones CRUD de vehículos
 
 
 const PORT = process.env.PORT || 3000;
