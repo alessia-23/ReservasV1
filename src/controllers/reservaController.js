@@ -65,44 +65,47 @@ const obtenerReservas = async (req, res) => {
 // BUSCAR RESERVA
 const buscarReserva = async (req, res) => {
     try {
-        let { codigo, cliente, vehiculo } = req.query;
-        if (codigo) codigo = codigo.trim();
-        if (cliente) cliente = cliente.trim();
-        if (vehiculo) vehiculo = vehiculo.trim();
-        if (!codigo && !cliente && !vehiculo) {
+        let { codigo, placa, cedula } = req.query;
+        if (codigo) codigo = codigo.trim().toUpperCase();
+        if (placa) placa = placa.trim().toUpperCase();
+        if (cedula) cedula = cedula.trim();
+        // No envía nada
+        if (!codigo && !placa && !cedula) {
             return res.status(400).json({
-                msg: "Debe enviar al menos un parámetro de búsqueda"
+                msg: "Debe enviar código, placa o cédula"
             });
         }
-        const filtro = {};
-        // Buscar por código 
+        //  Envía más de uno
+        const parametros = [codigo, placa, cedula].filter(Boolean);
+        if (parametros.length > 1) {
+            return res.status(400).json({
+                msg: "Debe buscar solo por un parámetro a la vez"
+            });
+        }
+        let filtro = {};
+        // 🔎 Buscar por código
         if (codigo) {
-            filtro.codigo = { $regex: codigo, $options: "i" };
+            filtro.codigo = codigo;
         }
-
-        // Buscar por cliente ya sea nombre, apellido o cedula
-        if (cliente) {
-            const clientes = await Cliente.find({
-                $or: [
-                    { nombre: { $regex: cliente, $options: "i" } },
-                    { apellido: { $regex: cliente, $options: "i" } },
-                    { cedula: { $regex: cliente, $options: "i" } }
-                ]
-            });
-            const idsClientes = clientes.map(c => c._id);
-            filtro.cliente = { $in: idsClientes };
+        //  Buscar por placa
+        if (placa) {
+            const vehiculo = await Vehiculo.findOne({ placa });
+            if (!vehiculo) {
+                return res.status(404).json({
+                    msg: "Vehículo no encontrado"
+                });
+            }
+            filtro.vehiculo = vehiculo._id;
         }
-        // Buscar por vehículo por marca, modelo o placa
-        if (vehiculo) {
-            const vehiculos = await Vehiculo.find({
-                $or: [
-                    { marca: { $regex: vehiculo, $options: "i" } },
-                    { modelo: { $regex: vehiculo, $options: "i" } },
-                    { placa: { $regex: vehiculo, $options: "i" } }
-                ]
-            });
-            const idsVehiculos = vehiculos.map(v => v._id);
-            filtro.vehiculo = { $in: idsVehiculos };
+        // Buscar por cédula del cliente
+        if (cedula) {
+            const cliente = await Cliente.findOne({ cedula });
+            if (!cliente) {
+                return res.status(404).json({
+                    msg: "Cliente no encontrado"
+                });
+            }
+            filtro.cliente = cliente._id;
         }
         const reservas = await Reserva.find(filtro)
             .populate("cliente", "nombre apellido cedula")
@@ -112,13 +115,11 @@ const buscarReserva = async (req, res) => {
                 msg: "No se encontraron reservas"
             });
         }
-        res.json({
-            reservas
-        });
+        res.json({ reservas });
     } catch (error) {
         console.error(error);
         res.status(500).json({
-            msg: "Error del servidor al buscar reservas"
+            msg: "Error del servidor"
         });
     }
 };
