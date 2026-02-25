@@ -94,6 +94,26 @@ const actualizarCliente = async (req, res) => {
                 delete datosActualizados[key];
             }
         });
+        // VALIDACIÓN DE CÉDULA EN ACTUALIZACIÓN
+        if (datosActualizados.cedula) {
+            const clienteActual = await Cliente.findById(id);
+            if (!clienteActual) {
+                return res.status(404).json({
+                    error: "Cliente no encontrado"
+                });
+            }
+            // Solo validar si realmente cambió la cédula
+            if (clienteActual.cedula !== datosActualizados.cedula) {
+                const existeCedula = await Cliente.findOne({
+                    cedula: datosActualizados.cedula
+                });
+                if (existeCedula) {
+                    return res.status(400).json({
+                        error: "La cédula ya pertenece a otro cliente"
+                    });
+                }
+            }
+        }
         const cliente = await Cliente.findByIdAndUpdate(
             id,
             datosActualizados,
@@ -102,11 +122,6 @@ const actualizarCliente = async (req, res) => {
                 runValidators: true
             }
         );
-        if (!cliente) {
-            return res.status(404).json({
-                error: "Cliente no encontrado"
-            });
-        }
         res.json({
             message: "Cliente actualizado correctamente",
             cliente
