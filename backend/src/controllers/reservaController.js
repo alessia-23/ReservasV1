@@ -7,19 +7,13 @@ import mongoose from "mongoose";
 const crearReserva = async (req, res) => {
     try {
         const { codigo, descripcion, cliente, vehiculo } = req.body;
+        // Validar campos obligatorios
         if (!codigo || !cliente || !vehiculo) {
-            return res.status(400).json({
-                msg: "Campos obligatorios incompletos"
-            });
+            return res.status(400).json({ msg: "Campos obligatorios incompletos" });
         }
         // Validar ObjectId
-        if (
-            !mongoose.Types.ObjectId.isValid(cliente) ||
-            !mongoose.Types.ObjectId.isValid(vehiculo)
-        ) {
-            return res.status(400).json({
-                msg: "ID de cliente o vehículo no válido"
-            });
+        if (!mongoose.Types.ObjectId.isValid(cliente) || !mongoose.Types.ObjectId.isValid(vehiculo)) {
+            return res.status(400).json({ msg: "ID de cliente o vehículo no válido" });
         }
         // Verificar existencia
         const [existeCliente, existeVehiculo] = await Promise.all([
@@ -27,31 +21,30 @@ const crearReserva = async (req, res) => {
             Vehiculo.findById(vehiculo)
         ]);
         if (!existeCliente || !existeVehiculo) {
-            return res.status(404).json({
-                msg: "Cliente o vehículo no encontrados"
-            });
+            return res.status(404).json({ msg: "Cliente o vehículo no encontrados" });
         }
-        // Evitar duplicado, es decir mismo cliente reservando mismo vehículo
+        // Validar duplicado por código
+        const yaExisteCodigo = await Reserva.findOne({ codigo });
+        if (yaExisteCodigo) {
+            return res.status(400).json({ msg: "El código de la reserva ya está en uso" });
+        }
+        // Validar duplicado cliente + vehículo
         const yaReservado = await Reserva.findOne({ cliente, vehiculo });
         if (yaReservado) {
-            return res.status(400).json({
-                msg: "Este cliente ya reservó este vehículo"
-            });
+            return res.status(400).json({ msg: "Este cliente ya reservó este vehículo" });
         }
-        const reserva = await Reserva.create({codigo,descripcion,cliente,vehiculo});
+        // Crear reserva
+        const reserva = await Reserva.create({ codigo, descripcion, cliente, vehiculo });
         res.status(201).json({
             msg: "Reserva creada correctamente",
             reserva
         });
     } catch (error) {
         if (error.name === "ValidationError") {
-            return res.status(400).json({
-                msg: error.message
-            });
+            return res.status(400).json({ msg: error.message });
         }
-        res.status(500).json({
-            msg: "Error del servidor al crear reserva"
-        });
+        console.error(error);
+        res.status(500).json({ msg: "Error del servidor al crear reserva" });
     }
 };
 
@@ -134,6 +127,7 @@ const buscarReserva = async (req, res) => {
 const actualizarReserva = async (req, res) => {
     try {
         const { id } = req.params;
+        // Validar ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 msg: "ID no válido"
@@ -146,6 +140,19 @@ const actualizarReserva = async (req, res) => {
             });
         }
         const { codigo, descripcion, cliente, vehiculo } = req.body;
+        // Validar código único si viene
+        if (codigo) {
+            const codigoExiste = await Reserva.findOne({
+                codigo,
+                _id: { $ne: id }
+            });
+            if (codigoExiste) {
+                return res.status(400).json({
+                    msg: "El código ya está en uso"
+                });
+            }
+            reserva.codigo = codigo;
+        }
         // Validar cliente si viene
         if (cliente) {
             if (!mongoose.Types.ObjectId.isValid(cliente)) {
@@ -161,7 +168,7 @@ const actualizarReserva = async (req, res) => {
             }
             reserva.cliente = cliente;
         }
-        // Validar vehículo 
+        // Validar vehículo si viene
         if (vehiculo) {
             if (!mongoose.Types.ObjectId.isValid(vehiculo)) {
                 return res.status(400).json({
@@ -176,7 +183,7 @@ const actualizarReserva = async (req, res) => {
             }
             reserva.vehiculo = vehiculo;
         }
-        // Validar duplicado después del cambio
+        // Validar que no exista duplicado cliente + vehículo
         const yaReservado = await Reserva.findOne({
             cliente: reserva.cliente,
             vehiculo: reserva.vehiculo,
@@ -187,14 +194,16 @@ const actualizarReserva = async (req, res) => {
                 msg: "Ya existe una reserva con este cliente y vehículo"
             });
         }
-        if (codigo) reserva.codigo = codigo;
-        if (descripcion) reserva.descripcion = descripcion;
+        if (descripcion !== undefined) {
+            reserva.descripcion = descripcion;
+        }
         await reserva.save();
         res.json({
             msg: "Reserva actualizada correctamente",
             reserva
         });
     } catch (error) {
+        console.error(error);
         res.status(500).json({
             msg: "Error del servidor al actualizar reserva"
         });
