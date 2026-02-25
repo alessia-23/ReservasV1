@@ -127,6 +127,7 @@ const buscarReserva = async (req, res) => {
 const actualizarReserva = async (req, res) => {
     try {
         const { id } = req.params;
+        // Validar ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 msg: "ID no válido"
@@ -139,6 +140,19 @@ const actualizarReserva = async (req, res) => {
             });
         }
         const { codigo, descripcion, cliente, vehiculo } = req.body;
+        // Validar código único si viene
+        if (codigo) {
+            const codigoExiste = await Reserva.findOne({
+                codigo,
+                _id: { $ne: id }
+            });
+            if (codigoExiste) {
+                return res.status(400).json({
+                    msg: "El código ya está en uso"
+                });
+            }
+            reserva.codigo = codigo;
+        }
         // Validar cliente si viene
         if (cliente) {
             if (!mongoose.Types.ObjectId.isValid(cliente)) {
@@ -154,7 +168,7 @@ const actualizarReserva = async (req, res) => {
             }
             reserva.cliente = cliente;
         }
-        // Validar vehículo 
+        // Validar vehículo si viene
         if (vehiculo) {
             if (!mongoose.Types.ObjectId.isValid(vehiculo)) {
                 return res.status(400).json({
@@ -169,7 +183,7 @@ const actualizarReserva = async (req, res) => {
             }
             reserva.vehiculo = vehiculo;
         }
-        // Validar duplicado después del cambio
+        // Validar que no exista duplicado cliente + vehículo
         const yaReservado = await Reserva.findOne({
             cliente: reserva.cliente,
             vehiculo: reserva.vehiculo,
@@ -180,14 +194,16 @@ const actualizarReserva = async (req, res) => {
                 msg: "Ya existe una reserva con este cliente y vehículo"
             });
         }
-        if (codigo) reserva.codigo = codigo;
-        if (descripcion) reserva.descripcion = descripcion;
+        if (descripcion !== undefined) {
+            reserva.descripcion = descripcion;
+        }
         await reserva.save();
         res.json({
             msg: "Reserva actualizada correctamente",
             reserva
         });
     } catch (error) {
+        console.error(error);
         res.status(500).json({
             msg: "Error del servidor al actualizar reserva"
         });
