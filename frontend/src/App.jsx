@@ -83,7 +83,7 @@ function App() {
           <Route path="crear" element={<ReservaCreate />} />
           <Route path="listar" element={<ReservaList />} />
           <Route path="actualizar/:id" element={<ReservaEdit />} />
-          <Route path="buscarMateria" element={<ReservaDetail />} />
+          <Route path="buscar" element={<ReservaDetail />} />
         </Route>
 
         {/* RUTAS MATRÍCULAS */}
@@ -99,7 +99,7 @@ function App() {
           <Route path="crear" element={<VehiculoCreate />} />
           <Route path="listar" element={<VehiculoList />} />
           <Route path="actualizar/:id" element={<VehiculoEdit />} />
-          <Route path="buscarMatricula" element={<VehiculoDetail />} />
+          <Route path="buscar" element={<VehiculoDetail />} />
         </Route>
       </Routes>
     </>

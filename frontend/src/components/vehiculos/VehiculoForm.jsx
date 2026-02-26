@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { toast } from "react-toastify";
 
-const VehiculoForm = ({ initialValues, onSubmit, loading }) => {
+const VehiculoForm = ({ initialData = {}, onSubmit, loading = false, isEdit = false }) => {
     const [form, setForm] = useState({
         marca: "",
         modelo: "",
@@ -10,48 +9,112 @@ const VehiculoForm = ({ initialValues, onSubmit, loading }) => {
         color: "",
         tipo_vehiculo: "",
         kilometraje: "",
-        descripcion: "",
-        ...initialValues
+        descripcion: ""
     });
+
+    const [errors, setErrors] = useState({});
+
+    useEffect(() => {
+        if (initialData && Object.keys(initialData).length > 0) {
+            setForm({
+                ...initialData,
+                anio_fabricacion: initialData.anio_fabricacion || "",
+                kilometraje: initialData.kilometraje || "",
+            });
+        }
+    }, [initialData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
+        setErrors(prev => ({ ...prev, [name]: "" }));
+    };
+
+    const validate = () => {
+        const newErrors = {};
+        const requiredFields = ["marca", "modelo", "anio_fabricacion", "placa", "color", "tipo_vehiculo", "kilometraje"];
+
+        for (const field of requiredFields) {
+            if (!form[field]?.toString().trim()) newErrors[field] = "Campo obligatorio";
+        }
+
+        const anioActual = new Date().getFullYear();
+        if (form.anio_fabricacion && (form.anio_fabricacion < 1950 || form.anio_fabricacion > anioActual)) {
+            newErrors.anio_fabricacion = `Debe estar entre 1950 y ${anioActual}`;
+        }
+
+        if (form.placa && form.placa.length !== 7) {
+            newErrors.placa = "La placa debe tener 7 caracteres";
+        }
+
+        if (form.kilometraje && form.kilometraje < 0) {
+            newErrors.kilometraje = "Kilometraje no puede ser negativo";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-
-        // Validaciones front
-        if (!form.marca || !form.modelo || !form.anio_fabricacion || !form.placa || !form.color || !form.tipo_vehiculo || !form.kilometraje) {
-            return toast.error("Por favor completa todos los campos obligatorios");
+        if (validate()) {
+            onSubmit({
+                ...form,
+                anio_fabricacion: Number(form.anio_fabricacion),
+                kilometraje: Number(form.kilometraje),
+                placa: form.placa.toUpperCase()
+            });
         }
-
-        if (form.placa.length !== 7) return toast.error("La placa debe tener exactamente 7 caracteres");
-
-        onSubmit(form);
     };
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow max-w-2xl mx-auto space-y-4">
-            <h2 className="text-xl font-bold text-rose-600">{initialValues ? "Editar Vehículo" : "Crear Vehículo"}</h2>
+        <form
+            onSubmit={handleSubmit}
+            className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40 max-w-4xl mx-auto"
+        >
+            <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-rose-500 to-orange-500 bg-clip-text text-transparent">
+                {isEdit ? "Editar Vehículo" : "Crear Vehículo"}
+            </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" name="marca" placeholder="Marca" value={form.marca} onChange={handleChange} className="input-field" />
-                <input type="text" name="modelo" placeholder="Modelo" value={form.modelo} onChange={handleChange} className="input-field" />
-                <input type="number" name="anio_fabricacion" placeholder="Año de fabricación" value={form.anio_fabricacion} onChange={handleChange} className="input-field" />
-                <input type="text" name="placa" placeholder="Placa" value={form.placa} onChange={handleChange} className="input-field" />
-                <input type="text" name="color" placeholder="Color" value={form.color} onChange={handleChange} className="input-field" />
-                <input type="text" name="tipo_vehiculo" placeholder="Tipo de vehículo" value={form.tipo_vehiculo} onChange={handleChange} className="input-field" />
-                <input type="number" name="kilometraje" placeholder="Kilometraje" value={form.kilometraje} onChange={handleChange} className="input-field" />
-                <input type="text" name="descripcion" placeholder="Descripción" value={form.descripcion} onChange={handleChange} className="input-field col-span-1 md:col-span-2" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input label="Marca" name="marca" value={form.marca} onChange={handleChange} error={errors.marca} placeholder="Ej: Toyota" autoFocus />
+                <Input label="Modelo" name="modelo" value={form.modelo} onChange={handleChange} error={errors.modelo} placeholder="Ej: Corolla" />
+                <Input label="Año de fabricación" name="anio_fabricacion" type="number" value={form.anio_fabricacion} onChange={handleChange} error={errors.anio_fabricacion} placeholder="Ej: 2020" />
+                <Input label="Placa" name="placa" value={form.placa} onChange={handleChange} error={errors.placa} maxLength={7} placeholder="Ej: ABC1234" />
+                <Input label="Color" name="color" value={form.color} onChange={handleChange} error={errors.color} placeholder="Ej: Rojo" />
+                <Input label="Tipo de vehículo" name="tipo_vehiculo" value={form.tipo_vehiculo} onChange={handleChange} error={errors.tipo_vehiculo} placeholder="Ej: Sedan, SUV" />
+                <Input label="Kilometraje" name="kilometraje" type="number" value={form.kilometraje} onChange={handleChange} error={errors.kilometraje} placeholder="Ej: 12000" />
+                <Input label="Descripción" name="descripcion" value={form.descripcion} onChange={handleChange} error={errors.descripcion} placeholder="Descripción adicional del vehículo" className="col-span-1 md:col-span-2" />
             </div>
 
-            <button type="submit" disabled={loading} className="bg-rose-500 text-white px-4 py-2 rounded hover:bg-rose-600">
-                {loading ? "Guardando..." : "Guardar"}
+            <button
+                type="submit"
+                disabled={loading}
+                className="mt-10 w-full bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white py-3 rounded-xl font-semibold shadow-lg transition-all duration-300"
+            >
+                {loading ? "Guardando..." : isEdit ? "Actualizar Vehículo" : "Crear Vehículo"}
             </button>
         </form>
     );
 };
+
+// ---------------------------
+// INPUT CON TOOLTIP FLOTANTE
+// ---------------------------
+const Input = ({ label, error, placeholder, ...props }) => (
+    <div className="relative">
+        <label className="block text-sm font-medium mb-1">{label}</label>
+        <input
+            {...props}
+            placeholder={placeholder}
+            className={`w-full px-4 py-2 rounded-xl border ${error ? "border-red-500" : "border-gray-300"} focus:ring-2 ${error ? "focus:ring-red-400" : "focus:ring-rose-400"} outline-none transition`}
+        />
+        {error && (
+            <div className="absolute top-0 right-0 mt-1 mr-0 bg-rose-100 text-rose-800 text-xs px-2 py-1 rounded shadow-lg z-10">
+                {error}
+            </div>
+        )}
+    </div>
+);
 
 export default VehiculoForm;
