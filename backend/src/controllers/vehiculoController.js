@@ -55,11 +55,20 @@ const obtenerVehiculos = async (req, res) => {
 const buscarVehiculo = async (req, res) => {
     try {
         let { placa, marca } = req.query;
+
         if (placa) placa = placa.trim().toUpperCase();
         if (marca) marca = marca.trim();
+
+        // No envía ninguno
         if (!placa && !marca) {
             return res.status(400).json({
                 error: "Debe enviar placa o marca"
+            });
+        }
+        // Envía ambos
+        if (placa && marca) {
+            return res.status(400).json({
+                error: "Debe buscar por placa o por marca, no por ambas"
             });
         }
         let filtro = {};
@@ -67,7 +76,7 @@ const buscarVehiculo = async (req, res) => {
             filtro.placa = placa;
         }
         if (marca) {
-            filtro.marca = marca;
+            filtro.marca = { $regex: marca, $options: "i" };
         }
         const vehiculos = await Vehiculo
             .find(filtro)
