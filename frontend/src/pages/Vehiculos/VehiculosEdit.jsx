@@ -1,114 +1,73 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useFetch } from "../../hooks/useFetch";
+import VehiculoForm from "../../components/vehiculos/VehiculoForm";
 
 const VehiculoEdit = () => {
-    const { id } = useParams();
+    const { id } = useParams(); // el _id que viene de la lista
     const fetchData = useFetch();
+    const navigate = useNavigate();
 
-    const [form, setForm] = useState({
-        marca: "",
-        modelo: "",
-        anio_fabricacion: "",
-        placa: "",
-        color: "",
-        tipo_vehiculo: "",
-        kilometraje: "",
-        descripcion: "",
-    });
+    const [vehiculo, setVehiculo] = useState(null);
+    const [loading, setLoading] = useState(false);
 
-    const obtenerVehiculo = async () => {
+    // ==============================
+    // OBTENER VEHÍCULO POR ID LOCAL
+    // ==============================
+    const fetchVehiculo = async () => {
         try {
-            const res = await fetchData(`/vehiculos/buscar?placa=&marca=&id=${id}`);
-            if (res.vehiculos && res.vehiculos.length > 0) {
-                const v = res.vehiculos[0];
-                setForm({
-                    marca: v.marca,
-                    modelo: v.modelo,
-                    anio_fabricacion: v.anio_fabricacion,
-                    placa: v.placa,
-                    color: v.color,
-                    tipo_vehiculo: v.tipo_vehiculo,
-                    kilometraje: v.kilometraje,
-                    descripcion: v.descripcion,
-                });
+            setLoading(true);
+            const res = await fetchData("/vehiculos/listar"); // traemos todos
+            const found = res?.vehiculos?.find(v => v._id === id); // filtramos localmente
+            if (found) {
+                setVehiculo(found);
             } else {
                 toast.error("Vehículo no encontrado");
             }
         } catch (error) {
             toast.error(error?.error || "Error al obtener vehículo");
-        }
-    };
-
-    const handleChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const { marca, modelo, anio_fabricacion, placa, color, tipo_vehiculo, kilometraje, descripcion } = form;
-        if (!marca || !modelo || !anio_fabricacion || !placa || !color || !tipo_vehiculo || !kilometraje || !descripcion) {
-            toast.error("Todos los campos son obligatorios");
-            return;
-        }
-
-        try {
-            await fetchData(`/vehiculos/actualizar/${id}`, form, "PUT");
-            toast.success("Vehículo actualizado correctamente");
-        } catch (error) {
-            toast.error(error?.error || "Error al actualizar vehículo");
+        } finally {
+            setLoading(false);
         }
     };
 
     useEffect(() => {
-        obtenerVehiculo();
+        fetchVehiculo();
     }, [id]);
 
+    // ==============================
+    // ACTUALIZAR VEHÍCULO
+    // ==============================
+    const handleUpdate = async (formData) => {
+        try {
+            setLoading(true);
+            await fetchData(`/vehiculos/actualizar/${id}`, formData, "PUT");
+            toast.success("Vehículo actualizado correctamente");
+
+            // redirigir a la lista
+            navigate("/vehiculos/listar");
+        } catch (error) {
+            toast.error(error?.error || "Error al actualizar vehículo");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading && !vehiculo) return <p className="text-center mt-6">Cargando vehículo...</p>;
+    if (!vehiculo) return <p className="text-center mt-6 text-red-500">Vehículo no encontrado</p>;
+
     return (
-            <div className="p-6 max-w-2xl mx-auto">
-                <h1 className="text-2xl font-bold mb-6 text-rose-600">Editar Vehículo</h1>
-                <form className="space-y-4" onSubmit={handleSubmit}>
-                    {[
-                        { label: "Marca", name: "marca", type: "text" },
-                        { label: "Modelo", name: "modelo", type: "text" },
-                        { label: "Año de Fabricación", name: "anio_fabricacion", type: "number" },
-                        { label: "Placa", name: "placa", type: "text" },
-                        { label: "Color", name: "color", type: "text" },
-                        { label: "Tipo de Vehículo", name: "tipo_vehiculo", type: "text" },
-                        { label: "Kilometraje", name: "kilometraje", type: "number" },
-                    ].map((field) => (
-                        <div key={field.name}>
-                            <label className="block mb-1 font-medium">{field.label}</label>
-                            <input
-                                type={field.type}
-                                name={field.name}
-                                value={form[field.name]}
-                                onChange={handleChange}
-                                className="w-full border border-rose-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-rose-400"
-                            />
-                        </div>
-                    ))}
-
-                    <div>
-                        <label className="block mb-1 font-medium">Descripción</label>
-                        <textarea
-                            name="descripcion"
-                            value={form.descripcion}
-                            onChange={handleChange}
-                            className="w-full border border-rose-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-rose-400"
-                            rows={3}
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="bg-rose-500 text-white px-4 py-2 rounded hover:bg-rose-600 transition"
-                    >
-                        Actualizar Vehículo
-                    </button>
-                </form>
+        <div className="min-h-screen bg-gradient-to-br from-rose-50 via-orange-50 to-amber-50 p-6">
+            <div className="max-w-4xl mx-auto bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/40">
+                <VehiculoForm
+                    initialData={vehiculo}
+                    onSubmit={handleUpdate}
+                    loading={loading}
+                    isEdit={true}
+                />
             </div>
+        </div>
     );
 };
 
